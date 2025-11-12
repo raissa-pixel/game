@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grande Prêmio Carreira</title>
+    <!-- Carrega Tailwind CSS para estilização moderna e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Define a fonte Inter (padrão) e um fallback genérico */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111827; /* Cor de fundo escura, tema de corrida */
+        }
+        /* Efeito de brilho sutil no contêiner principal */
+        .neon-glow {
+            box-shadow: 0 0 40px rgba(239, 68, 68, 0.4); /* Brilho vermelho suave */
+            transition: all 0.3s ease;
+        }
+        .neon-glow:hover {
+            box-shadow: 0 0 60px rgba(239, 68, 68, 0.6);
+        }
+        /* Animação de pulsação para o botão */
+        @keyframes pulse-once {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .animate-pulse-once {
+            animation: pulse-once 0.7s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-4">
+
+    <!-- Container Principal Centrado -->
+    <div class="w-full max-w-2xl text-center p-8 md:p-12 bg-gray-800 rounded-2xl shadow-xl neon-glow border-4 border-red-600">
+        <!-- Título do Jogo -->
+        <h1 class="text-6xl md:text-8xl font-black mb-4 uppercase tracking-tighter text-red-500">
+            Turbo Dash 2D
+        </h1>
+
+        <!-- Subtítulo -->
+        <p class="text-xl md:text-3xl font-light text-gray-300 mb-12 italic">
+            <span class="font-bold text-red-300">Carreira:</span> Escolha seu carro e vença o desafio!
+        </p>
+
+        <!-- Botão Interativo "INICIAR JOGO" -->
+        <button id="startButton" onclick="startGame()"
+                class="
+                    w-full max-w-xs md:max-w-md
+                    py-4 px-8
+                    text-2xl md:text-3xl font-extrabold
+                    uppercase
+                    bg-red-600 hover:bg-red-700
+                    text-white
+                    rounded-full
+                    shadow-lg shadow-red-800/50
+                    transition duration-300 ease-in-out
+                    transform hover:scale-105 active:scale-95
+                    focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50
+                ">
+            INICIAR JOGO
+        </button>
+
+        <!-- Mensagem de feedback (escondida por padrão) -->
+        <div id="messageBox" class="mt-8 p-3 bg-red-900/50 text-red-200 rounded-lg hidden">
+            <!-- O texto será inserido aqui pelo JavaScript -->
+        </div>
+
+        <!-- Rodapé / Informação Adicional -->
+        <p class="text-sm text-gray-500 mt-16">
+            Jogo de Corrida de Carrinhos Simples. Versão 1.0
+        </p>
+    </div>
+
+    <script>
+        /**
+         * Simula o início do jogo.
+         * Esta função será a porta de entrada para a tela de seleção de carros e a lógica do jogo.
+         */
+        function startGame() {
+            const button = document.getElementById('startButton');
+            const messageBox = document.getElementById('messageBox');
+
+            // Adiciona um efeito de pulsação temporário ao clicar
+            button.classList.add('animate-pulse-once');
+            setTimeout(() => {
+                button.classList.remove('animate-pulse-once');
+            }, 700);
+
+            // Exibe a mensagem de feedback
+            messageBox.textContent = 'Preparando a pista! Você será levado à tela de seleção de carros.';
+            messageBox.classList.remove('hidden');
+
+            window.location = 'original.html'; // Redireciona para a tela de seleção de carros
+        }
+    </script>
+</body>
+</html>
