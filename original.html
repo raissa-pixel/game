@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Corrida de Carros</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos personalizados para o jogo */
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600&display=swap');
+
+        /* Variáveis CSS base que serão atualizadas via JS para o tema */
+        :root {
+            /* MUDA: Agora usado para o fundo do Game Container */
+            --bg-color: #282a36;
+            /* NOVO: Fundo da Página (Body) */
+            --body-bg-color: #1e1e2f;
+            --primary-color: #ff3c70;
+            /* Borda do container */
+            --accent-color: #50fa7b;
+            /* Cor de Destaque/Vitória */
+            --car-track: #4a4a58;
+            /* Fundo da Pista */
+            --instruction-color: #bd93f9;
+            /* Cor das Instruções */
+
+            --car-width: 80px;
+            /* Largura aumentada para caber o nome */
+            --car-height: 30px;
+            --track-padding: 20px;
+            --finish-line-width: 8px;
+        }
+
+        body {
+            font-family: 'Chakra Petch', sans-serif;
+            /* APLICANDO a nova variável dinâmica (fundo da página) */
+            background-color: var(--body-bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            /* Adapta cor do texto para fundos claros, mas é reescrito abaixo */
+            color: #ffffff;
+            /* ADICIONA transição suave */
+            transition: background-color 0.8s ease;
+        }
+
+        /* NOVO: Classe para mudar a cor do texto do body para escuro quando o fundo for claro */
+        body.light-text {
+            color: #282a36;
+            /* Texto escuro */
+        }
+
+        .game-container {
+            /* APLICANDO a variável dinâmica (fundo do container) */
+            background: var(--bg-color);
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+            border: 4px solid var(--primary-color);
+            /* Borda dinâmica */
+            /* ADICIONA transição suave */
+            transition: border-color 0.5s ease, box-shadow 0.5s ease, background-color 0.8s ease;
+        }
+
+        .header {
+            margin-bottom: 20px;
+        }
+
+        .level-display {
+            font-size: 1.8rem;
+            color: var(--accent-color);
+            /* Cor de destaque dinâmica */
+            margin-bottom: 10px;
+            transition: color 0.5s ease;
+        }
+
+        /* MUDADO: Título (h1) e Nível (level-display) precisam de cores dinâmicas */
+        .game-container h1 {
+            color: var(--instruction-color);
+            /* Usa uma cor de destaque para o título */
+            transition: color 0.5s ease;
+        }
+
+        .instruction {
+            font-size: 1.2rem;
+            color: var(--instruction-color);
+            /* Cor da instrução dinâmica */
+            margin-bottom: 20px;
+            min-height: 30px;
+            transition: color 0.5s ease;
+        }
+
+        /* --- Pista de Corrida (Track) --- */
+        #track-container {
+            position: relative;
+            background-color: var(--car-track);
+            /* Fundo da pista dinâmico */
+            padding: var(--track-padding);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: background-color 0.5s ease;
+        }
+
+        .track-lane {
+            position: relative;
+            height: calc(var(--car-height) + 10px);
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .finish-line {
+            position: absolute;
+            top: 0;
+            right: var(--track-padding);
+            width: var(--finish-line-width);
+            height: 100%;
+            background-image: linear-gradient(45deg, #fff 25%, #000 25%, #000 50%, #fff 50%, #fff 75%, #000 75%, #000 100%);
+            background-size: 8px 8px;
+            z-index: 10;
+        }
+
+        /* --- Estilo do Carro (Car) --- */
+        .car {
+            position: absolute;
+            left: var(--track-padding);
+            width: var(--car-width);
+            height: var(--car-height);
+            border-radius: 0;
+            background-color: transparent !important;
+            cursor: pointer;
+            box-shadow: none !important;
+            transition: box-shadow 0.1s, transform 0.1s ease-out;
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            transform: translateX(0);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        /* NOVO: Estilo para a imagem dentro do carro */
+        .car img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Garante que a imagem caiba e mantenha proporções */
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+
+        .car::before,
+        .car::after {
+            content: none !important;
+        }
+
+        .car.selected {
+            border: 3px solid #f1fa8c;
+            /* Cor de seleção fixa para contraste */
+        }
+
+        /* Ajuste o tamanho do nome para não atrapalhar a imagem */
+        .car-number {
+            color: #fff;
+            /* Mudando para branco para melhor contraste */
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 0 #000;
+            padding: 2px 4px;
+            background-color: rgba(0, 0, 0, 0.4);
+            /* Fundo semi-transparente para o nome */
+            border-radius: 4px;
+            white-space: nowrap;
+            position: absolute;
+            /* Posiciona o nome acima do carro */
+            bottom: -15px; /* Ajusta para aparecer abaixo do carro (ou onde você preferir) */
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* --- Botões e Mensagens --- */
+        .feedback-message {
+            min-height: 40px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            margin-top: 15px;
+        }
+
+        .success {
+            color: var(--accent-color);
+            opacity: 1;
+        }
+
+        /* Usa a cor de destaque do nível */
+        .error {
+            color: #ff5555;
+            opacity: 1;
+        }
+
+        .neutral {
+            color: var(--instruction-color);
+            /* Usa a cor de instrução para feedback neutro */
+            opacity: 1;
+        }
+
+        .start-button {
+            padding: 12px 24px;
+            /* Cores definidas via JS */
+            color: #282a36;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, box-shadow 0.3s, transform 0.1s;
+            display: inline-block;
+            margin-top: 20px;
+            text-transform: uppercase;
+        }
+
+        .start-button:hover {
+            filter: brightness(1.2);
+        }
+
+        /* Efeito de brilho genérico no hover */
+        .start-button:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 !important;
+        }
+
+        .start-button:disabled {
+            background-color: #555 !important;
+            color: #aaa;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none;
+            filter: none;
+        }
+
+        .select-mode .car:hover {
+            transform: scale(1.1);
+            border: 3px solid var(--instruction-color);
+            /* Destaque no hover usa a cor de instrução */
+        }
+    </style>
+</head>
+
+<body class="select-mode">
+
+    <div class="game-container">
+        <div class="header">
+            <h1 class="text-3xl font-bold mb-2">🚥 Turbo Dash 2D 🏎️</h1>
+            <div id="level-display" class="level-display">Nível 1</div>
+        </div>
+
+        <p id="instruction" class="instruction">
+            Selecione seu carro clicando em um deles e depois clique em "Iniciar Corrida"!
+        </p>
+
+        <div id="track-container">
+            <div class="finish-line"></div>
+        </div>
+
+        <button id="start-race-button" class="start-button">
+            Iniciar Corrida
+        </button>
+
+        <div id="feedback" class="feedback-message"></div>
+        <button id="reset-button"
+            class="mt-4 px-6 py-2 text-white font-bold rounded-lg shadow-md transition duration-300 transform hover:scale-105"
+            style="background-color: var(--primary-color);">
+            Reiniciar Jogo
+        </button>
+    </div>
+
+    <script>
+        // --- Variáveis Globais de Jogo ---
+        const MAX_LEVELS = 4;
+
+        // NOVO: Lista maior de nomes de carros para mais variedade
+        const ALL_CAR_NAMES = [
+            'Pétala de Aço', 'Cristal de Gelo', 'Raiz Metálica', 'Fênix', 'Magma', 'Plasma',
+            'Trovão', 'Relâmpago', 'Cometa', 'Dragão', 'Vulcão', 'Fantasma', 'Raio'
+        ];
+        let currentLevel = 1;
+        let selectedCarId = -1;
+        let cars = [];
+        let winningCarId = -1;
+        let animationFrameId;
+        let isRacing = false;
+        let finishedCount = 0;
+
+        let raceDistancePx = 0;
+        let carWidthPx = 0;
+        let trackPaddingPx = 0;
+
+        // Mapeamento específico do número de carros por nível
+        const CARS_PER_LEVEL = {
+            1: 2, // Nível 1: 2 carros
+            2: 4, // Nível 2: 4 carros
+            3: 6, // Nível 3: 6 carros
+            4: 6 // Nível 4: 6 carros
+        };
+
+        // --- TEMAS (Usados para sorteio, exceto o nível final) ---
+        const ALL_LEVEL_THEMES = [
+            { // Tema 1 (Azul/Ciano - Claro)
+                bodyBg: '#f7faff',
+                bg: '#e8eef2',
+                primary: '#57a8ff',
+                accent: '#50fa7b',
+                track: '#a6bfd4',
+                instruction: '#2c3e50',
+                isLight: true,
+            },
+            { // Tema 2 (Rosa/Coral - Claro)
+                bodyBg: '#fff7f7',
+                bg: '#f9e8e8',
+                primary: '#ff70a6',
+                accent: '#ffda6a',
+                track: '#e2b3c7',
+                instruction: '#6a0040',
+                isLight: true,
+            },
+            { // Tema 3 (Verde/Lima - Claro)
+                bodyBg: '#fafff7',
+                bg: '#eff6e9',
+                primary: '#a8c657',
+                accent: '#ff9f57',
+                track: '#c7e2b3',
+                instruction: '#476900',
+                isLight: true,
+            },
+            { // Tema 4 (Tema Escuro Clássico)
+                bodyBg: '#1e1e2f',
+                bg: '#282a36',
+                primary: '#ff3c70',
+                accent: '#50fa7b',
+                track: '#4a4a58',
+                instruction: '#bd93f9',
+                isLight: false,
+            }
+        ];
+
+        // Tema Ouro Fixo para o Nível Final
+        const FINAL_LEVEL_THEME = {
+            bodyBg: '#fffae3',
+            bg: '#f4ecd0',
+            primary: '#ffd700',
+            accent: '#ff5757',
+            track: '#e0c98f',
+            instruction: '#a36d00',
+            isLight: true,
+        };
+
+        // Lista completa de cores de carro
+        const ALL_CAR_COLORS = [
+            '#ff4444', '#44ff44', '#4444ff',
+            '#ffaa00', '#aa44ff', '#00ffff',
+            '#f1fa8c', '#bd93f9', '#ff9f57',
+            '#ff6e3a', '#5af78d', '#f78c6c' // Mais cores
+        ];
+
+        // Elementos do DOM
+        const levelDisplay = document.getElementById('level-display');
+        const instructionEl = document.getElementById('instruction');
+        const trackContainer = document.getElementById('track-container');
+        const feedbackEl = document.getElementById('feedback');
+        const startRaceButton = document.getElementById('start-race-button');
+        const resetButton = document.getElementById('reset-button');
+        const gameContainer = document.querySelector('.game-container');
+        const body = document.body;
+        const titleEl = document.querySelector('.game-container h1');
+
+
+        // --- Funções de Ajuda de Cores e Aleatoriedade ---
+
+        // Função utilitária para embaralhar um array (Algoritmo Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Retorna um novo array com cores sorteadas (sem repetição na mesma fase)
+        function getRandomCarColors(count) {
+            // Embaralha uma cópia para não alterar a original
+            const shuffledColors = shuffleArray([...ALL_CAR_COLORS]);
+            return shuffledColors.slice(0, count);
+        }
+
+        // Retorna um novo array com nomes sorteadas (sem repetição na mesma fase)
+        function getRandomCarNames(count) {
+            const shuffledNames = shuffleArray([...ALL_CAR_NAMES]);
+            return shuffledNames.slice(0, count);
+        }
+
+        function getDarkerColor(hex, factor = 0.8) {
+            let r = parseInt(hex.slice(1, 3), 16);
+            let g = parseInt(hex.slice(3, 5), 16);
+            let b = parseInt(hex.slice(5, 7), 16);
+
+            r = Math.floor(r * factor);
+            g = Math.floor(g * factor);
+            b = Math.floor(b * factor);
+
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+
+        // --- Funções de Ajuda de Dimensionamento ---
+
+        function calculateRaceDimensions() {
+            if (!trackContainer) return;
+            const root = getComputedStyle(document.documentElement);
+            trackPaddingPx = parseFloat(root.getPropertyValue('--track-padding'));
+            carWidthPx = parseFloat(root.getPropertyValue('--car-width'));
+
+            const trackContainerWidth = trackContainer.clientWidth;
+            // Distância que o carro precisa percorrer (da ponta esquerda ao início da linha de chegada)
+            raceDistancePx = trackContainerWidth - (2 * trackPaddingPx) - carWidthPx;
+        }
+
+        // --- Classe Carro (mantida da versão anterior) ---
+
+        class Car {
+            constructor(id, color, element, name) {
+                this.id = id;
+                this.color = color;
+                this.element = element;
+                this.name = name; // Novo: Nome do carro
+                this.position = 0; // Posição de 0.0 a 1.0 (percentual da distância percorrida)
+                this.speed = 0;
+                this.hasFinished = false;
+            }
+
+            initializeSpeed(isGuaranteedWinner) {
+                // Aumenta a dificuldade nos níveis mais altos
+                const levelFactor = currentLevel * 0.00005;
+
+                if (isGuaranteedWinner) {
+                    this.speed = 0.005 + levelFactor;
+                } else {
+                    const baseSpeed = 0.002 + levelFactor;
+                    const maxVariation = baseSpeed * 0.4;
+                    this.speed = baseSpeed + (Math.random() * maxVariation);
+                }
+            }
+
+            move() {
+                if (this.hasFinished) return;
+
+                const acceleration = (Math.random() * 0.0001) - 0.00005;
+                this.speed = Math.max(0.0005, this.speed + acceleration);
+
+                this.position += this.speed;
+
+                if (this.position >= 1.0) {
+                    this.position = 1.0;
+                    this.finish();
+                }
+
+                const currentPixelOffset = raceDistancePx * this.position;
+                this.element.style.transform = `translateX(${currentPixelOffset}px)`;
+            }
+
+            finish() {
+                if (this.hasFinished) return;
+                this.hasFinished = true;
+                this.element.classList.add('finished');
+                finishedCount++;
+            }
+        }
+
+        // --- Funções do Jogo ---
+
+        function initGame() {
+            currentLevel = 1;
+            selectedCarId = -1;
+            // Garante que as dimensões sejam calculadas antes de montar o nível
+            calculateRaceDimensions();
+            gameContainer.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.5)'; // Reseta o brilho final
+            setupLevel();
+        }
+
+        function setupLevel() {
+            // Determina o número de carros
+            const numberOfCars = CARS_PER_LEVEL[currentLevel] || CARS_PER_LEVEL[MAX_LEVELS];
+
+            // 1. Aplica o Tema Randômico (ou o Tema Final Fixo)
+            let theme;
+            if (currentLevel === MAX_LEVELS) {
+                theme = FINAL_LEVEL_THEME; // Tema fixo para o final
+            } else {
+                // Sorteia um tema para o nível atual
+                const randomIndex = Math.floor(Math.random() * ALL_LEVEL_THEMES.length);
+                theme = ALL_LEVEL_THEMES[randomIndex];
+            }
+
+            const root = document.documentElement.style;
+
+            // Aplica as variáveis do tema
+            root.setProperty('--body-bg-color', theme.bodyBg);
+            root.setProperty('--bg-color', theme.bg);
+            root.setProperty('--primary-color', theme.primary);
+            root.setProperty('--accent-color', theme.accent);
+            root.setProperty('--car-track', theme.track);
+            root.setProperty('--instruction-color', theme.instruction);
+
+            // Gerencia a cor do texto do body (para fundos claros)
+            if (theme.isLight) {
+                body.classList.add('light-text');
+                titleEl.classList.remove('text-white');
+            } else {
+                body.classList.remove('light-text');
+                titleEl.classList.add('text-white');
+            }
+
+            // Atualiza o estilo direto do botão de Start e Reset
+            startRaceButton.style.backgroundColor = theme.accent;
+            startRaceButton.style.boxShadow = `0 4px ${getDarkerColor(theme.accent, 0.8)}`;
+
+            resetButton.style.backgroundColor = theme.primary;
+            resetButton.style.boxShadow = `0 4px ${getDarkerColor(theme.primary, 0.7)}`;
+            resetButton.textContent = 'Reiniciar Jogo (Nível 1)';
+            resetButton.onclick = initGame;
+
+
+            // Configura UI e Estado
+            resetButton.style.display = 'none';
+            levelDisplay.textContent = `Nível ${currentLevel} de ${MAX_LEVELS}`;
+            feedbackEl.classList.remove('success', 'error', 'neutral');
+            feedbackEl.textContent = '';
+
+            trackContainer.innerHTML = '<div class="finish-line"></div>';
+            cars = [];
+            finishedCount = 0;
+
+            // 2. Prepara listas randômicas de Cores e Nomes
+            const randomCarColors = getRandomCarColors(numberOfCars);
+            const randomCarNames = getRandomCarNames(numberOfCars);
+            winningCarId = Math.floor(Math.random() * numberOfCars);
+
+            // Cria as pistas e os carros
+            for (let i = 0; i < numberOfCars; i++) {
+                const lane = document.createElement('div');
+                lane.classList.add('track-lane');
+
+                // Usa o elemento randômico das listas
+                const color = randomCarColors[i];
+                const carName = randomCarNames[i];
+
+                const carEl = document.createElement('div');
+                carEl.classList.add('car');
+                // IMPORTANTE: Embora o CSS use a imagem, deixamos a cor no elemento
+                // para compatibilidade com a classe Car e possível uso de cor de fundo
+                carEl.style.backgroundColor = color;
+                carEl.dataset.id = i;
+                
+                // *** MUDANÇA AQUI: Usa 5.jpg com dimensão ajustável via CSS ***
+                carEl.innerHTML = "<img src='5.jpg' alt='Carro Pixelado'>";
+
+
+                const namePlate = document.createElement('span');
+                namePlate.textContent = carName;
+                namePlate.classList.add('car-number');
+                carEl.appendChild(namePlate);
+
+                const newCar = new Car(i, color, carEl, carName);
+                cars.push(newCar);
+
+                lane.appendChild(carEl);
+                trackContainer.appendChild(lane);
+            }
+
+            // Ajusta a altura da pista
+            const totalLaneHeight = numberOfCars * (parseFloat(root.getPropertyValue('--car-height')) + 15);
+            const trackPaddingTotal = 2 * parseFloat(root.getPropertyValue('--track-padding'));
+            trackContainer.style.minHeight = `${totalLaneHeight + trackPaddingTotal}px`;
+
+            enterSelectMode();
+        }
+
+        function enterSelectMode() {
+            isRacing = false;
+            document.body.classList.add('select-mode');
+            instructionEl.textContent = `Nível ${currentLevel}: Selecione seu carro e tente adivinhar qual é o mais rápido!`;
+            startRaceButton.style.display = 'block';
+            startRaceButton.disabled = selectedCarId === -1;
+
+            const feedbackText = selectedCarId === -1 ?
+                'Clique em um carro para escolhê-lo.' :
+                `Carro ${cars[selectedCarId].name} selecionado.`;
+
+            feedbackEl.textContent = feedbackText;
+            feedbackEl.classList.add('neutral');
+
+            cars.forEach(car => {
+                car.element.onclick = () => selectCar(car.id);
+                car.element.classList.remove('selected', 'finished');
+                car.element.style.cursor = 'pointer';
+                car.element.style.border = 'none';
+                car.element.style.transform = 'translateX(0)';
+
+                if (car.id === selectedCarId) {
+                    car.element.classList.add('selected');
+                }
+            });
+        }
+
+        function selectCar(id) {
+            selectedCarId = id;
+
+            cars.forEach(car => {
+                car.element.classList.remove('selected');
+            });
+            cars[id].element.classList.add('selected');
+
+            instructionEl.textContent = `Você selecionou o Carro ${cars[id].name}. Clique em "Iniciar Corrida" para apostar!`;
+            startRaceButton.disabled = false;
+            feedbackEl.textContent = 'Aperte "Iniciar Corrida" quando estiver pronto.';
+            feedbackEl.classList.add('neutral');
+        }
+
+        function startRace() {
+            if (selectedCarId === -1 || isRacing) return;
+
+            isRacing = true;
+            document.body.classList.remove('select-mode');
+            startRaceButton.style.display = 'none';
+            feedbackEl.classList.remove('neutral');
+            feedbackEl.textContent = '3... 2... 1... LARGADA!';
+            instructionEl.textContent = 'A corrida começou! Quem será o vencedor?';
+            resetButton.style.display = 'none';
+
+            // Garante que o cálculo de dimensão está correto antes de iniciar
+            calculateRaceDimensions();
+
+            cars.forEach(car => {
+                car.element.onclick = null;
+                car.position = 0;
+                car.hasFinished = false;
+                car.element.classList.remove('selected');
+                car.element.style.border = 'none';
+                // Vencedor é determinado no setupLevel e passado para o initializeSpeed
+                const isWinner = car.id === winningCarId;
+                car.initializeSpeed(isWinner);
+            });
+
+            cars[selectedCarId].element.classList.add('selected'); // Destaque na corrida
+
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if (!isRacing) return;
+
+            let winnerId = -1;
+
+            for (let i = 0; i < cars.length; i++) {
+                cars[i].move();
+
+                if (cars[i].position >= 1.0 && winnerId === -1) {
+                    winnerId = cars[i].id; // O primeiro a cruzar é o vencedor
+                }
+            }
+
+            if (winnerId !== -1) {
+                endRace(winnerId);
+            } else {
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function endRace(firstPlaceId) {
+            isRacing = false;
+            cancelAnimationFrame(animationFrameId);
+
+            // Destaque de Ouro para o Vencedor
+            cars.forEach(car => {
+                if (car.id === firstPlaceId) {
+                    car.element.style.border = '4px solid gold';
+                }
+            });
+
+            const playerWon = (firstPlaceId === selectedCarId);
+            const winningCarName = cars[firstPlaceId].name; // Pega o nome do vencedor
+
+
+            instructionEl.textContent = `A corrida terminou! O Carro ${winningCarName} venceu!`;
+
+            if (playerWon) {
+                if (currentLevel < MAX_LEVELS) {
+                    // Avança para o próximo nível
+                    feedbackEl.textContent = `🎉 VITÓRIA NO NÍVEL ${currentLevel}! Preparando para o Nível ${currentLevel + 1}...`;
+                    feedbackEl.classList.add('success');
+
+                    setTimeout(() => {
+                        currentLevel++;
+                        selectedCarId = -1; // Deseleciona para o próximo nível
+                        setupLevel(); // Configura o novo nível (com cores/nomes/tema randômicos)
+                    }, 3500);
+
+                } else {
+                    // Vitória final!
+                    feedbackEl.textContent = `🏆 CONCLUÍDO! VOCÊ CONQUISTOU TODAS AS ${MAX_LEVELS} FASES DA CORRIDA!`;
+                    feedbackEl.classList.add('success');
+
+                    // Efeito visual final
+                    gameContainer.style.boxShadow = `0 0 50px var(--primary-color)`;
+
+                    resetButton.style.display = 'block';
+
+                }
+
+            } else {
+                // Perdeu
+                feedbackEl.textContent = `❌ QUE PENA! O seu carro não venceu no Nível ${currentLevel}. Tente novamente no Nível 1.`;
+                feedbackEl.classList.add('error');
+                resetButton.style.display = 'block';
+            }
+        }
+
+        // --- Event Listeners ---
+        startRaceButton.addEventListener('click', startRace);
+        window.addEventListener('resize', calculateRaceDimensions);
+
+        // Inicia o jogo ao carregar a página
+        window.onload = initGame;
+
+    </script>
+</body>
+
+</html>
